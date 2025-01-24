@@ -1,0 +1,185 @@
+# dynamic.py
+from fastapi import FastAPI, UploadFile, File, Request
+from fastapi.templating import Jinja2Templates
+import base64
+ 
+app = FastAPI()
+ 
+templates = Jinja2Templates(directory="templates")
+ 
+@app.get("/")
+def dynamic_file(request: Request):
+    return templates.TemplateResponse("dynamic.html", {"request": request})
+ 
+@app.post("/dynamic")
+def dynamic(request: Request, file: UploadFile = File()):
+    data = file.file.read()
+    # Image will be saved in the uploads folder prefixed with uploaded_ 
+    with open("uploads/saved_" + file.filename, "wb") as f:
+        f.write(data)
+    file.file.close()
+ 
+    # encoding and decoding the image bytes
+    encoded_image = base64.b64encode(data).decode("utf-8")
+ 
+    return templates.TemplateResponse(
+        "dynamic.html", {"request": request,  "img": encoded_image})
+
+
+
+
+
+<html>
+  <head>
+    <title>Rendering Dynamic Images Using FastAPI</title>
+  </head>
+  <body>
+ 
+    <form action="/dynamic" enctype="multipart/form-data" method="POST">
+      <input name="file" type="file" />
+      <input type="submit" />
+    </form>
+ 
+    {% if img %}
+    <h1>Rendered Image</h1>
+    <img src="data:image/jpeg;base64,{{ img }}" />
+    {% else %}
+    <h1>Image will be render here...</h1>
+    {% endif %}
+ 
+  </body>
+</html>
+
+
+the way i figured out how to do it was by encoding the image as base64 in fastapi, sending the base64 encoded image to frontend with an api call and rendering the image in the base64 encoded format in react. here is some of the code for it.
+fastapi code (remember not to use response_model=fileresponse)
+
+with open(imgpath, 'rb') as f:
+    base64image = base64.b64encode(f.read())
+return base64image
+react code.
+
+<img src={data:image/jpeg;base64,${data}} />
+
+
+
+
+from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import StreamingResponse
+from pathlib import Path
+
+app = FastAPI()
+
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    file_path = Path("uploads") / ("saved_" + file.filename)
+    with file_path.open("wb") as buffer:
+        buffer.write(await file.read())
+    return {"filename": file.filename}
+
+@app.get("/images/{filename}")
+async def get_image(filename: str):
+    file_path = Path("uploads") / filename
+    return StreamingResponse(open(file_path, "rb"), media_type="image/jpeg")
+
+
+
+import React, { useState } from 'react';
+import axios from 'axios';
+
+const UploadForm = () => {
+  const [file, setFile] = useState(null);
+  const [uploadedFile, setUploadedFile] = useState(null);
+
+  const handleFileChange = (event) => {
+    setFile(event.target.files[0]);
+  };
+
+  const handleUpload = async () => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post('http://localhost:8000/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      setUploadedFile(response.data.filename);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    }
+  };
+
+  return (
+    <div>
+      <input type="file" onChange={handleFileChange} />
+      <button onClick={handleUpload}>Upload</button>
+      {uploadedFile && (
+        <div>
+          <h2>Uploaded Image</h2>
+          <img src={`http://localhost:8000/images/${uploadedFile}`} alt="Uploaded" />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default UploadForm;
+
+
+
+To fetch data based on what was selected from a React select component, you can use the selected value as a parameter in an API request. Here's a general approach:
+
+First, create a select component in React where users can make a selection:
+
+jsx
+Copy code
+import React, { useState } from 'react';
+import axios from 'axios';
+
+const MyComponent = () => {
+  const [selectedValue, setSelectedValue] = useState('');
+  const [responseData, setResponseData] = useState(null);
+
+  const handleChange = (event) => {
+    setSelectedValue(event.target.value);
+  };
+
+  const fetchData = async () => {
+    try {
+      const response = await axios.get(`http://example.com/api/data?selected=${selectedValue}`);
+      setResponseData(response.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
+
+  return (
+    <div>
+      <select value={selectedValue} onChange={handleChange}>
+        <option value="">Select an option</option>
+        <option value="option1">Option 1</option>
+        <option value="option2">Option 2</option>
+        <option value="option3">Option 3</option>
+      </select>
+      <button onClick={fetchData}>Fetch Data</button>
+      {responseData && (
+        <div>
+          <h2>Data:</h2>
+          <pre>{JSON.stringify(responseData, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MyComponent;
+In this component:
+
+We have a select component where users can choose an option.
+We use the handleChange function to update the selectedValue state whenever an option is selected.
+We have a button that, when clicked, triggers the fetchData function.
+Inside the fetchData function, we make an API request to fetch data based on the selected value.
+If the request is successful, we update the responseData state with the fetched data, and it is displayed below the button.
+Ensure to replace 'http://example.com/api/data?selected=${selectedValue}' with the appropriate URL for your API endpoint. Additionally, you need to handle the server-side logic to process the API request and return the appropriate data based on the selected value.

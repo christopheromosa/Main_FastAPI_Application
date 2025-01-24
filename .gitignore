@@ -1,0 +1,51 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+
+# Static files and uploaded images
+static/
+uploaded_images/
+
+# Alembic migrations (compiled or temporary files)
+alembic/versions/
+*.db
+
+# Logs and debug files
+*.log
+logs/
+
+# IDE files
+.idea/
+.vscode/
+
+# Python environment variables
+.env
+.env.*
+
+# Backup and temporary files
+*.bak
+*.tmp
+*.swp
+
+# Dependency management
+*.egg-info/
+pip-log.txt
+
+# Files for documentation or debugging
+image_save_and_upload.txt
+image.txt
+
+# Coverage files
+htmlcov/
+.coverage
+.tox/
+.nox/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini
